@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications – StudyMate</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-placeholder"></div>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Notifications</div>
+        <div class="topbar-subtitle">Stay updated on your tasks and schedule</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost" onclick="markAllRead()">✓ Mark All Read</button>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🔔 All Notifications</span>
+          <span id="unreadBadge" class="badge badge-blue" style="display:none"></span>
+        </div>
+        <div class="card-body" id="notifList">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+
+<script src="js/common.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', async () => {
+  await requireAuth();
+  setupSidebar('notifications');
+  loadNotifications();
+});
+
+async function loadNotifications() {
+  const res = await apiFetch('/notifications');
+  const container = document.getElementById('notifList');
+
+  if (!res.ok) { container.innerHTML = '<p>Could not load notifications.</p>'; return; }
+
+  const notifs = await res.json();
+  const unread = notifs.filter(n => !n.is_read).length;
+  const badge = document.getElementById('unreadBadge');
+  if (unread > 0) { badge.textContent = `${unread} unread`; badge.style.display = 'inline'; }
+
+  if (notifs.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔕</div><div class="empty-state-title">No notifications yet</div><p>Notifications about your tasks and schedule will appear here.</p></div>`;
+    return;
+  }
+
+  const icons = { deadline: '⏰', schedule: '📅', task: '📝', welcome: '🎉' };
+
+  container.innerHTML = notifs.map(n => {
+    const msgLower = n.message.toLowerCase();
+    const icon = msgLower.includes('welcome') ? '🎉' : msgLower.includes('schedule') ? '📅' : msgLower.includes('deadline') || msgLower.includes('deadline') ? '⏰' : '📝';
+
+    return `
+    <div class="notif-item ${n.is_read ? '' : 'unread'}">
+      <span style="font-size:22px;flex-shrink:0">${icon}</span>
+      <div class="notif-dot ${n.is_read ? 'read' : ''}"></div>
+      <div style="flex:1">
+        <div class="notif-text">${n.message}</div>
+        <div class="notif-time">${timeAgo(n.created_at)}</div>
+      </div>
+      <span class="badge ${n.is_read ? 'badge-gray' : 'badge-blue'}">${n.is_read ? 'Read' : 'New'}</span>
+    </div>`;
+  }).join('');
+}
+
+async function markAllRead() {
+  await apiFetch('/notifications/read', { method: 'POST' });
+  showToast('All notifications marked as read', 'success');
+  loadNotifications();
+}
+</script>
+</body>
+</html>

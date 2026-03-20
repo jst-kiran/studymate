@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login – StudyMate</title>
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+
+<div class="auth-wrapper">
+  <!-- LEFT PANEL -->
+  <div class="auth-left">
+    <div class="auth-brand">
+      <div class="auth-brand-icon">🎓</div>
+      <span class="auth-brand-name">StudyMate</span>
+    </div>
+    <h2 class="auth-tagline">Welcome <span>back!</span><br>Let's get studying.</h2>
+    <p class="auth-desc">Your personalized study plans and tasks are waiting for you. Log in to continue where you left off.</p>
+    <div class="auth-features">
+      <div class="auth-feature">
+        <div class="feature-check">✓</div>
+        Smart study schedule generation
+      </div>
+      <div class="auth-feature">
+        <div class="feature-check">✓</div>
+        Task tracking & progress dashboard
+      </div>
+      <div class="auth-feature">
+        <div class="feature-check">✓</div>
+        Deadline reminders & notifications
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="auth-right">
+    <h2 class="auth-form-title">Log In</h2>
+    <p class="auth-form-subtitle">Enter your credentials to access your account.</p>
+
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input type="email" id="email" placeholder="you@example.com" required>
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Enter your password" required>
+    </div>
+
+    <div id="errorMsg" class="error-msg">Invalid email or password. Please try again.</div>
+
+    <button class="btn-submit" onclick="handleLogin()">Log In →</button>
+
+    <div class="auth-switch">
+      Don't have an account? <a href="signup.html">Sign up free</a>
+    </div>
+    <div style="text-align:center;margin-top:10px;font-size:13px;color:#aaa">
+      <a href="index.html" style="color:#aaa">← Back to Home</a>
+    </div>
+  </div>
+</div>
+
+<script>
+async function handleLogin() {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const errorMsg = document.getElementById('errorMsg');
+  errorMsg.classList.remove('show');
+
+  if (!email || !password) {
+    errorMsg.textContent = 'Please fill in all fields.';
+    errorMsg.classList.add('show');
+    return;
+  }
+
+  const btn = document.querySelector('.btn-submit');
+  btn.textContent = 'Logging in...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      window.location.href = '/add-task.html';
+    } else {
+      errorMsg.textContent = data.error || 'Login failed.';
+      errorMsg.classList.add('show');
+      btn.textContent = 'Log In →';
+      btn.disabled = false;
+    }
+  } catch {
+    errorMsg.textContent = 'Server error. Please try again.';
+    errorMsg.classList.add('show');
+    btn.textContent = 'Log In →';
+    btn.disabled = false;
+  }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+</script>
+</body>
+</html>

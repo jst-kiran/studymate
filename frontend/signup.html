@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up – StudyMate</title>
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+
+<div class="auth-wrapper">
+  <!-- LEFT PANEL -->
+  <div class="auth-left">
+    <div class="auth-brand">
+      <div class="auth-brand-icon">🎓</div>
+      <span class="auth-brand-name">StudyMate</span>
+    </div>
+    <h2 class="auth-tagline">Start your<br><span>study journey</span> today.</h2>
+    <p class="auth-desc">Create your free account and get a personalized study plan in minutes. No credit card required.</p>
+    <div class="auth-features">
+      <div class="auth-feature">
+        <div class="feature-check">✓</div>
+        Free to sign up, no credit card needed
+      </div>
+      <div class="auth-feature">
+        <div class="feature-check">✓</div>
+        Generate your first schedule instantly
+      </div>
+      <div class="auth-feature">
+        <div class="feature-check">✓</div>
+        Track tasks across all your subjects
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="auth-right">
+    <h2 class="auth-form-title">Create Account</h2>
+    <p class="auth-form-subtitle">Join StudyMate and start studying smarter today.</p>
+
+    <div class="form-group">
+      <label for="name">Full Name</label>
+      <input type="text" id="name" placeholder="Your full name" required>
+    </div>
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input type="email" id="email" placeholder="you@example.com" required>
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Min. 6 characters" required>
+    </div>
+    <div class="form-group">
+      <label for="confirm">Confirm Password</label>
+      <input type="password" id="confirm" placeholder="Repeat your password" required>
+    </div>
+
+    <div id="errorMsg" class="error-msg">Something went wrong.</div>
+
+    <button class="btn-submit" onclick="handleSignup()">Create Account →</button>
+
+    <div class="auth-switch">
+      Already have an account? <a href="login.html">Log in</a>
+    </div>
+    <div style="text-align:center;margin-top:10px;font-size:13px;color:#aaa">
+      <a href="index.html" style="color:#aaa">← Back to Home</a>
+    </div>
+  </div>
+</div>
+
+<script>
+async function handleSignup() {
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const confirm = document.getElementById('confirm').value;
+  const errorMsg = document.getElementById('errorMsg');
+  errorMsg.classList.remove('show');
+
+  if (!name || !email || !password || !confirm) {
+    errorMsg.textContent = 'Please fill in all fields.';
+    errorMsg.classList.add('show'); return;
+  }
+  if (password.length < 6) {
+    errorMsg.textContent = 'Password must be at least 6 characters.';
+    errorMsg.classList.add('show'); return;
+  }
+  if (password !== confirm) {
+    errorMsg.textContent = 'Passwords do not match.';
+    errorMsg.classList.add('show'); return;
+  }
+
+  const btn = document.querySelector('.btn-submit');
+  btn.textContent = 'Creating account...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ name, email, password })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      window.location.href = '/add-task.html';
+    } else {
+      errorMsg.textContent = data.error || 'Signup failed.';
+      errorMsg.classList.add('show');
+      btn.textContent = 'Create Account →';
+      btn.disabled = false;
+    }
+  } catch {
+    errorMsg.textContent = 'Server error. Please try again.';
+    errorMsg.classList.add('show');
+    btn.textContent = 'Create Account →';
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>

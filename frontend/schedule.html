@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schedule – StudyMate</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-placeholder"></div>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Study Schedule</div>
+        <div class="topbar-subtitle">Your personalized study plan</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost" onclick="regenerate()">🔄 Regenerate Schedule</button>
+        <button class="btn btn-primary" onclick="window.location.href='/dashboard.html'">📊 Go to Dashboard</button>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div id="scheduleContent">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+
+<script src="js/common.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', async () => {
+  await requireAuth();
+  setupSidebar('schedule');
+  loadSchedule();
+});
+
+async function loadSchedule() {
+  const res = await apiFetch('/schedule');
+  const container = document.getElementById('scheduleContent');
+
+  if (!res.ok) { container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-title">No schedule yet</div><p>Add tasks and click "Generate Schedule" to create your plan.</p><br><a href="/add-task.html"><button class="btn btn-primary">Add Tasks</button></a></div>`; return; }
+
+  const schedule = await res.json();
+
+  if (schedule.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-title">No schedule generated yet</div><p>Go to Add Tasks and generate your schedule.</p><br><a href="/add-task.html"><button class="btn btn-primary">Add Tasks →</button></a></div>`;
+    return;
+  }
+
+  // Group by date
+  const grouped = {};
+  schedule.forEach(item => {
+    if (!grouped[item.schedule_date]) grouped[item.schedule_date] = [];
+    grouped[item.schedule_date].push(item);
+  });
+
+  const totalHours = schedule.reduce((s, i) => s + parseFloat(i.hours || 0), 0).toFixed(1);
+  const uniqueDays = Object.keys(grouped).length;
+
+  let html = `
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;">
+      <div class="stat-card">
+        <div class="stat-icon blue">📅</div>
+        <div class="stat-info"><div class="stat-value">${uniqueDays}</div><div class="stat-label">Study Days</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">⏱️</div>
+        <div class="stat-info"><div class="stat-value">${totalHours}h</div><div class="stat-label">Total Hours</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon orange">📝</div>
+        <div class="stat-info"><div class="stat-value">${schedule.length}</div><div class="stat-label">Sessions</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" style="margin-bottom:0;">
+        <span class="card-title">📋 Full Schedule</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="regenerate()">🔄 Regenerate</button>
+          <button class="btn btn-primary btn-sm" onclick="window.location.href='/dashboard.html'">Dashboard →</button>
+        </div>
+      </div>
+      <div class="card-body" style="padding-top:10px;">
+  `;
+
+  for (const [date, items] of Object.entries(grouped)) {
+    const d = new Date(date + 'T00:00:00');
+    const dateLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const isToday = new Date().toDateString() === d.toDateString();
+
+    html += `<div class="schedule-date-group">
+      <div class="schedule-date-label">${isToday ? '🟢 Today — ' : ''}${dateLabel}</div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Task</th><th>Topic</th><th>Hours</th><th>Type</th><th>Difficulty</th></tr></thead>
+          <tbody>`;
+
+    items.forEach(item => {
+      html += `<tr>
+        <td><strong>${item.task_name || '—'}</strong></td>
+        <td>${item.topic || '—'}</td>
+        <td><span class="badge badge-blue">${item.hours}h</span></td>
+        <td>${typeBadge(item.task_type)}</td>
+        <td>${diffBadge(item.difficulty)}</td>
+      </tr>`;
+    });
+
+    html += `</tbody></table></div></div>`;
+  }
+
+  html += `</div></div>
+    <div style="display:flex;gap:12px;margin-top:24px;justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="regenerate()">🔄 Regenerate Schedule</button>
+      <button class="btn btn-primary btn-lg" onclick="window.location.href='/dashboard.html'">📊 Go to Dashboard</button>
+    </div>`;
+
+  container.innerHTML = html;
+}
+
+async function regenerate() {
+  showToast('Regenerating schedule...', 'info');
+  const res = await fetch('/api/regenerate', { method: 'POST', credentials: 'include' });
+  if (res.ok) { showToast('Schedule regenerated!', 'success'); loadSchedule(); }
+  else { showToast('Could not regenerate.', 'error'); }
+}
+</script>
+</body>
+</html>

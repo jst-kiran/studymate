@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Tasks – StudyMate</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-placeholder"></div>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Add Study Tasks</div>
+        <div class="topbar-subtitle">Add at least 3 tasks to generate your schedule</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-outline" onclick="addAnotherTask()">+ Add Another Task</button>
+        <button class="btn btn-primary" onclick="generateSchedule()">⚡ Generate Schedule</button>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <!-- Counter -->
+      <div class="task-counter-bar" id="counterBar">
+        <span class="counter-text" id="counterText">0 / 3 tasks added — add at least 3 to generate schedule</span>
+        <div class="counter-dots" id="counterDots">
+          <div class="counter-dot" id="dot1"></div>
+          <div class="counter-dot" id="dot2"></div>
+          <div class="counter-dot" id="dot3"></div>
+        </div>
+      </div>
+
+      <!-- Task sections container -->
+      <div id="tasksContainer"></div>
+
+      <!-- Extra Activities -->
+      <!-- <div class="card" style="margin-top: 20px;">
+        <div class="card-header">
+          <span class="card-title">🏃 Extra Activities (Optional)</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Select activities to include in your schedule planning:</p>
+          <div class="activity-chips">
+            <div class="activity-chip" data-activity="Music" onclick="toggleActivity(this)">🎵 Music</div>
+            <div class="activity-chip" data-activity="Dance" onclick="toggleActivity(this)">💃 Dance</div>
+            <div class="activity-chip" data-activity="Sports" onclick="toggleActivity(this)">⚽ Sports</div>
+            <div class="activity-chip" data-activity="Gym" onclick="toggleActivity(this)">🏋️ Gym</div>
+            <div class="activity-chip" data-activity="Reading" onclick="toggleActivity(this)">📚 Reading</div>
+            <div class="activity-chip" data-activity="Meditation" onclick="toggleActivity(this)">🧘 Meditation</div>
+            <div class="activity-chip" data-activity="Other" onclick="toggleActivity(this)">➕ Other</div>
+          </div>
+        </div>
+      </div> -->
+
+      <!-- Actions -->
+      <div style="display:flex;gap:12px;margin-top:24px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="addAnotherTask()">+ Add Another Task</button>
+        <button class="btn btn-primary btn-lg" onclick="generateSchedule()">⚡ Generate My Schedule</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+
+<script src="js/common.js"></script>
+<script>
+let taskCount = 0;
+let savedTaskIds = [];
+
+window.addEventListener('DOMContentLoaded', async () => {
+  const user = await requireAuth();
+  if (!user) return;
+  setupSidebar('tasks');
+
+  // Load existing tasks
+  const res = await apiFetch('/tasks');
+  if (res.ok) {
+    const tasks = await res.json();
+    savedTaskIds = tasks.map(t => t.id);
+    updateCounter(tasks.length);
+  }
+
+  // Add first task form
+  addTaskForm();
+});
+
+function addTaskForm() {
+  taskCount++;
+  const n = taskCount;
+  const container = document.getElementById('tasksContainer');
+
+  const div = document.createElement('div');
+  div.className = 'task-section';
+  div.id = `task-section-${n}`;
+  div.innerHTML = `
+    <div class="task-section-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="task-section-number">${n}</div>
+        <span style="font-weight:700;font-size:15px;">Task ${n}</span>
+      </div>
+      ${n > 1 ? `<button class="remove-task-btn" onclick="removeTask(${n})">✕</button>` : ''}
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Task Name *</label>
+        <input type="text" id="task_name_${n}" placeholder="e.g. Math Final Exam" required>
+      </div>
+      <div class="form-group">
+        <label>Task Type *</label>
+        <select id="task_type_${n}">
+          <option value="Exam">Exam</option>
+          <option value="Assignment">Assignment</option>
+          <option value="Study Topic">Study Topic</option>
+          <option value="Other Activity">Other Activity</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Topics to Cover / Task Details</label>
+        <textarea id="task_details_${n}" placeholder="List topics line by line, e.g.&#10;Unit 5: Algebra&#10;Unit 6: Geometry"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Difficulty Level</label>
+        <select id="difficulty_${n}">
+          <option value="Easy">Easy</option>
+          <option value="Medium" selected>Medium</option>
+          <option value="Hard">Hard</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Deadline Date *</label>
+        <input type="date" id="deadline_${n}" required>
+      </div>
+      <div class="form-group">
+        <label>Estimated Hours Required</label>
+        <input type="number" id="estimated_hours_${n}" placeholder="e.g. 10" min="0.5" step="0.5">
+      </div>
+      <div class="form-group">
+        <label>Min Hours I Can Study Per Day</label>
+        <input type="number" id="daily_min_hours_${n}" placeholder="e.g. 2" min="0.5" step="0.5">
+      </div>
+      <div class="form-group full">
+        <label>Upload File (PDF / Image)</label>
+        <div class="file-upload-area" onclick="document.getElementById('file_${n}').click()" id="fileArea_${n}">
+          <input type="file" id="file_${n}" accept=".pdf,image/*" onchange="onFileSelect(${n})">
+          <div class="file-upload-icon">📎</div>
+          <div class="file-upload-text">Click to upload syllabus, notes, or assignment</div>
+          <div class="file-upload-hint">PDF or Image • Max 10MB</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+      <button class="btn btn-primary btn-sm" onclick="saveTask(${n})">Save Task ${n}</button>
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+function onFileSelect(n) {
+  const file = document.getElementById(`file_${n}`).files[0];
+  const area = document.getElementById(`fileArea_${n}`);
+  if (file) {
+    area.querySelector('.file-upload-text').textContent = `✅ ${file.name}`;
+    area.style.borderColor = 'var(--success)';
+  }
+}
+
+function removeTask(n) {
+  document.getElementById(`task-section-${n}`).remove();
+}
+
+async function saveTask(n) {
+  const name = document.getElementById(`task_name_${n}`).value.trim();
+  const deadline = document.getElementById(`deadline_${n}`).value;
+  if (!name || !deadline) { showToast('Task name and deadline are required.', 'error'); return; }
+
+  const formData = new FormData();
+  formData.append('task_name', name);
+  formData.append('task_type', document.getElementById(`task_type_${n}`).value);
+  formData.append('task_details', document.getElementById(`task_details_${n}`).value);
+  formData.append('difficulty', document.getElementById(`difficulty_${n}`).value);
+  formData.append('deadline', deadline);
+  formData.append('estimated_hours', document.getElementById(`estimated_hours_${n}`).value || 2);
+  formData.append('daily_min_hours', document.getElementById(`daily_min_hours_${n}`).value || 1);
+  const fileInput = document.getElementById(`file_${n}`);
+  if (fileInput.files[0]) formData.append('file', fileInput.files[0]);
+
+  const btn = document.querySelector(`#task-section-${n} .btn-primary`);
+  btn.textContent = 'Saving...'; btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/tasks', { method: 'POST', credentials: 'include', body: formData });
+    const data = await res.json();
+    if (res.ok) {
+      savedTaskIds.push(data.taskId);
+      updateCounter(savedTaskIds.length);
+      showToast(`Task ${n} saved successfully!`, 'success');
+      btn.textContent = '✅ Saved!';
+      btn.style.background = 'var(--success)';
+      document.getElementById(`task-section-${n}`).style.borderColor = 'var(--success)';
+    } else {
+      showToast(data.error || 'Failed to save task.', 'error');
+      btn.textContent = `Save Task ${n}`; btn.disabled = false;
+    }
+  } catch {
+    showToast('Server error.', 'error');
+    btn.textContent = `Save Task ${n}`; btn.disabled = false;
+  }
+}
+
+function addAnotherTask() { addTaskForm(); }
+
+function updateCounter(count) {
+  const text = document.getElementById('counterText');
+  const dots = [document.getElementById('dot1'), document.getElementById('dot2'), document.getElementById('dot3')];
+  text.textContent = `${count} task${count !== 1 ? 's' : ''} saved — ${count >= 3 ? '✅ ready to generate schedule!' : `add ${3 - count} more to unlock schedule`}`;
+  dots.forEach((d, i) => { if (d) d.className = `counter-dot ${i < count ? 'filled' : ''}`; });
+}
+
+async function generateSchedule() {
+  const res = await apiFetch('/tasks/count');
+  if (res.ok) {
+    const data = await res.json();
+    if (data.count < 3) { showToast('Please save at least 3 tasks first!', 'warning'); return; }
+  }
+
+  const btn = document.querySelector('.btn-primary.btn-lg');
+  btn.textContent = 'Generating...'; btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/generate-schedule', { method: 'POST', credentials: 'include' });
+    const data = await res.json();
+    if (res.ok) { showToast('Schedule generated!', 'success'); setTimeout(() => window.location.href = '/schedule.html', 1000); }
+    else { showToast(data.error || 'Could not generate schedule.', 'error'); btn.textContent = '⚡ Generate My Schedule'; btn.disabled = false; }
+  } catch {
+    showToast('Server error.', 'error');
+    btn.textContent = '⚡ Generate My Schedule'; btn.disabled = false;
+  }
+}
+
+function toggleActivity(el) { el.classList.toggle('selected'); }
+</script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Task - StudyMate</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="form-container">
+                <!-- Header -->
+                <div class="page-header">
+                    <a href="dashboard.html" class="back-btn">← Back</a>
+                    <h1>Add New Task</h1>
+                </div>
+
+                <form id="addTaskForm" class="task-form">
+                    <div class="form-group">
+                        <label for="taskType">Task Type *</label>
+                        <select id="taskType" name="taskType" required>
+                            <option value="">Select task type</option>
+                            <option value="Assignment">Assignment</option>
+                            <option value="Exam">Exam</option>
+                            <option value="Study">Study</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taskName">Task Name *</label>
+                        <input type="text" id="taskName" name="taskName" placeholder="e.g., Mathematics Project" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" placeholder="Add details about your task..." rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="file">Upload File (Optional)</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="file" name="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg">
+                            <span id="fileName" class="file-name">No file chosen</span>
+                        </div>
+                        <small>Max file size: 5MB</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="deadline">Deadline *</label>
+                            <input type="date" id="deadline" name="deadline" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="difficulty">Difficulty Level *</label>
+                            <select id="difficulty" name="difficulty" required>
+                                <option value="">Select difficulty</option>
+                                <option value="Easy">Easy</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Hard">Hard</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="estimatedHours">Estimated Study Hours *</label>
+                        <input type="number" id="estimatedHours" name="estimatedHours" min="1" max="100" placeholder="e.g., 5" required>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Add Task</button>
+                        <button type="button" id="addAnotherBtn" class="btn btn-secondary">+ Add Another Task</button>
+                        <button type="button" id="generateScheduleBtn" class="btn btn-success">Generate My Schedule</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="dashboard.html" class="nav-item">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Home</span>
+            </a>
+            <a href="notifications.html" class="nav-item">
+                <span class="nav-icon">🔔</span>
+                <span class="nav-label">Notifications</span>
+            </a>
+            <a href="addtask.html" class="nav-item active">
+                <span class="nav-icon">➕</span>
+                <span class="nav-label">Add Task</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Reports</span>
+            </a>
+            <a href="profile.html" class="nav-item">
+                <span class="nav-icon">👤</span>
+                <span class="nav-label">Profile</span>
+            </a>
+        </nav>
+    </div>
+
+    <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+        <div class="spinner"></div>
+        <p id="loadingText">Loading...</p>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            
+            // File input handling
+            document.getElementById('file').addEventListener('change', (e) => {
+                const fileName = e.target.files[0]?.name || 'No file chosen';
+                document.getElementById('fileName').textContent = fileName;
+            });
+
+            // Form submission
+            document.getElementById('addTaskForm').addEventListener('submit', handleAddTask);
+            
+            // Add Another button
+            document.getElementById('addAnotherBtn').addEventListener('click', () => {
+                if (confirm('Save current task first?')) {
+                    document.getElementById('addTaskForm').submit();
+                } else {
+                    document.getElementById('addTaskForm').reset();
+                    document.getElementById('fileName').textContent = 'No file chosen';
+                }
+            });
+
+            // Generate Schedule button
+            document.getElementById('generateScheduleBtn').addEventListener('click', generateSchedule);
+        });
+    </script>
+</body>
+</html>

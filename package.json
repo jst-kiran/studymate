@@ -1,0 +1,12 @@
+{
+  "name": "studymate",
+  "version": "1.0.0",
+  "description": "StudyMate – Personal Study Planning Platform",
+  "scripts": {
+    "start": "cd backend && node server.js",
+    "install-deps": "cd backend && npm install"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

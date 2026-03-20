@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – StudyMate</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-placeholder"></div>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="greetingTitle">Good morning! 👋</div>
+        <div class="topbar-subtitle">Here's your study overview for today.</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost" onclick="window.location.href='/add-task.html'">+ Add New Task</button>
+        <button class="btn btn-primary" onclick="generateSchedule()">⚡ Generate New Schedule</button>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <!-- Stats -->
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+          <div class="stat-icon blue">📋</div>
+          <div class="stat-info"><div class="stat-value" id="activeTasks">—</div><div class="stat-label">Active Tasks</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">✅</div>
+          <div class="stat-info"><div class="stat-value" id="completedTasks">—</div><div class="stat-label">Completed Tasks</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">📅</div>
+          <div class="stat-info"><div class="stat-value" id="todayTasks">—</div><div class="stat-label">Today's Sessions</div></div>
+        </div>
+      </div>
+
+      <!-- Two column layout -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+        <!-- Today's Tasks from schedule -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📅 Today's Study Plan</span>
+            <a href="schedule.html" style="font-size:13px;color:var(--primary);">View Full →</a>
+          </div>
+          <div class="card-body" id="todaySchedule">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Active Tasks -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🔥 Active Tasks</span>
+            <a href="add-task.html" style="font-size:13px;color:var(--primary);">+ Add Task</a>
+          </div>
+          <div class="card-body" id="activeTasksList">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- All Tasks -->
+      <div class="card" style="margin-top:20px;">
+        <div class="card-header">
+          <span class="card-title">📝 All Tasks</span>
+        </div>
+        <div class="card-body" id="allTasksList">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+
+<script src="js/common.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', async () => {
+  const user = await requireAuth();
+  if (!user) return;
+  setupSidebar('dashboard');
+  setGreeting(user.name);
+  loadDashboard();
+});
+
+function setGreeting(name) {
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greetingTitle').textContent = `${greet}, ${name}! 👋`;
+}
+
+async function loadDashboard() {
+  const [tasksRes, scheduleRes] = await Promise.all([apiFetch('/tasks'), apiFetch('/schedule')]);
+  
+  const tasks = tasksRes.ok ? await tasksRes.json() : [];
+  const schedule = scheduleRes.ok ? await scheduleRes.json() : [];
+
+  const today = new Date().toISOString().split('T')[0];
+  const todayItems = schedule.filter(s => s.schedule_date && s.schedule_date.startsWith(today));
+  const active = tasks.filter(t => !t.is_completed);
+  const completed = tasks.filter(t => t.is_completed);
+
+  document.getElementById('activeTasks').textContent = active.length;
+  document.getElementById('completedTasks').textContent = completed.length;
+  document.getElementById('todayTasks').textContent = todayItems.length;
+
+  // Today's schedule
+  const todayDiv = document.getElementById('todaySchedule');
+  if (todayItems.length === 0) {
+    todayDiv.innerHTML = `<div class="empty-state" style="padding:24px"><div class="empty-state-icon">🌟</div><div class="empty-state-title">No sessions today</div><p style="font-size:13px">Generate a schedule or enjoy a well-deserved break!</p></div>`;
+  } else {
+    todayDiv.innerHTML = todayItems.map(item => `
+      <div class="task-item">
+        <span style="font-size:20px;">📖</span>
+        <div class="task-info">
+          <div class="task-name">${item.task_name}</div>
+          <div class="task-meta">${item.topic} • ${item.hours}h</div>
+        </div>
+        <span class="badge badge-blue">${item.hours}h</span>
+      </div>`).join('');
+  }
+
+  // Active tasks
+  const activeDiv = document.getElementById('activeTasksList');
+  if (active.length === 0) {
+    activeDiv.innerHTML = `<div class="empty-state" style="padding:24px"><div class="empty-state-icon">✨</div><div class="empty-state-title">All caught up!</div><p>No active tasks remaining.</p></div>`;
+  } else {
+    activeDiv.innerHTML = active.slice(0, 5).map(task => {
+      const daysLeft = task.deadline ? Math.ceil((new Date(task.deadline) - Date.now()) / 86400000) : null;
+      return `
+      <div class="task-item">
+        <div class="task-info">
+          <div class="task-name">${task.task_name}</div>
+          <div class="task-meta">${formatDate(task.deadline)} ${daysLeft !== null ? `• ${daysLeft > 0 ? daysLeft + 'd left' : '<span style="color:var(--danger)">Overdue</span>'}` : ''}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${diffBadge(task.difficulty)}
+          ${typeBadge(task.task_type)}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // All tasks table
+  const allDiv = document.getElementById('allTasksList');
+  if (tasks.length === 0) {
+    allDiv.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-title">No tasks yet</div><p>Start by adding your first study task.</p><br><a href="/add-task.html"><button class="btn btn-primary">Add Tasks</button></a></div>`;
+  } else {
+    allDiv.innerHTML = `
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th></th><th>Task</th><th>Type</th><th>Difficulty</th><th>Deadline</th><th>Hours</th><th>Status</th></tr></thead>
+          <tbody>
+            ${tasks.map(task => `
+              <tr class="${task.is_completed ? 'completed' : ''}">
+                <td><input type="checkbox" class="task-checkbox" ${task.is_completed ? 'checked' : ''} onchange="toggleTask(${task.id}, this.checked)"></td>
+                <td><strong>${task.task_name}</strong></td>
+                <td>${typeBadge(task.task_type)}</td>
+                <td>${diffBadge(task.difficulty)}</td>
+                <td style="font-size:13px">${formatDate(task.deadline)}</td>
+                <td>${task.estimated_hours || '—'}h</td>
+                <td><span class="badge ${task.is_completed ? 'badge-green' : 'badge-yellow'}">${task.is_completed ? '✅ Done' : '⏳ Active'}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+}
+
+async function toggleTask(id, completed) {
+  await apiFetch(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ is_completed: completed ? 1 : 0 }) });
+  loadDashboard();
+  showToast(completed ? 'Task marked as complete!' : 'Task marked as active.', 'success');
+}
+
+async function generateSchedule() {
+  const res = await fetch('/api/generate-schedule', { method: 'POST', credentials: 'include' });
+  const data = await res.json();
+  if (res.ok) { showToast('New schedule generated!', 'success'); loadDashboard(); }
+  else showToast(data.error || 'Failed.', 'error');
+}
+</script>
+</body>
+</html>

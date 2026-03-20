@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - StudyMate</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="reports-container">
+                <!-- Header -->
+                <div class="page-header">
+                    <a href="dashboard.html" class="back-btn">← Back</a>
+                    <h1>Reports & Analytics</h1>
+                </div>
+
+                <!-- Summary Stats -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Study Overview</h2>
+                    </div>
+                    <div class="stats-grid-profile">
+                        <div class="stat-card">
+                            <h3 id="totalTasksReport">0</h3>
+                            <p>Total Tasks</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="completedTasksReport">0</h3>
+                            <p>Completed</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="assignmentsCount">0</h3>
+                            <p>Assignments</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="examsCount">0</h3>
+                            <p>Exams</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Task Distribution -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Task Distribution</h2>
+                    </div>
+                    <div id="taskDistribution" class="distribution-list">
+                        <p class="empty-message">No tasks available</p>
+                    </div>
+                </div>
+
+                <!-- Difficulty Breakdown -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Difficulty Breakdown</h2>
+                    </div>
+                    <div id="difficultyBreakdown" class="breakdown-list">
+                        <p class="empty-message">No tasks available</p>
+                    </div>
+                </div>
+
+                <!-- Recent Tasks -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Recent Tasks</h2>
+                    </div>
+                    <div id="recentTasksList" class="tasks-list">
+                        <p class="empty-message">No tasks yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="dashboard.html" class="nav-item">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Home</span>
+            </a>
+            <a href="notifications.html" class="nav-item">
+                <span class="nav-icon">🔔</span>
+                <span class="nav-label">Notifications</span>
+            </a>
+            <a href="addtask.html" class="nav-item">
+                <span class="nav-icon">➕</span>
+                <span class="nav-label">Add Task</span>
+            </a>
+            <a href="reports.html" class="nav-item active">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Reports</span>
+            </a>
+            <a href="profile.html" class="nav-item">
+                <span class="nav-icon">👤</span>
+                <span class="nav-label">Profile</span>
+            </a>
+        </nav>
+    </div>
+
+    <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+        <div class="spinner"></div>
+        <p>Loading reports...</p>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadReports();
+        });
+    </script>
+</body>
+</html>

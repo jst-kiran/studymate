@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile – StudyMate</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-placeholder"></div>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">My Profile</div>
+        <div class="topbar-subtitle">Your account information and study statistics</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-danger btn-sm" onclick="handleLogout()">Sign Out</button>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div id="profileContent">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+
+<script src="js/common.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', async () => {
+  await requireAuth();
+  setupSidebar('profile');
+  loadProfile();
+});
+
+async function loadProfile() {
+  const res = await apiFetch('/profile');
+  const container = document.getElementById('profileContent');
+
+  if (!res.ok) { container.innerHTML = '<p>Could not load profile.</p>'; return; }
+
+  const profile = await res.json();
+  const initials = profile.name ? profile.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?';
+  const totalTasks = parseInt(profile.total || 0);
+  const completedCount = parseInt(profile.completed || 0);
+  const progressPct = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+  const memberSince = new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  container.innerHTML = `
+    <!-- Profile Header -->
+    <div class="profile-header">
+      <div class="profile-avatar-lg">${initials}</div>
+      <div style="flex:1">
+        <div class="profile-name">${profile.name}</div>
+        <div class="profile-email">✉️ ${profile.email}</div>
+        <div style="color:rgba(255,255,255,0.5);font-size:13px;margin-top:4px">🗓 Member since ${memberSince}</div>
+        <div class="profile-stats">
+          <div class="profile-stat">
+            <div class="profile-stat-val">${totalTasks}</div>
+            <div class="profile-stat-lbl">Total Tasks</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-val">${completedCount}</div>
+            <div class="profile-stat-lbl">Completed</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-val">${progressPct}%</div>
+            <div class="profile-stat-lbl">Completion Rate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" style="margin-bottom:24px;">
+      <div class="stat-card">
+        <div class="stat-icon blue">📋</div>
+        <div class="stat-info">
+          <div class="stat-value">${totalTasks - completedCount}</div>
+          <div class="stat-label">Active Tasks</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">✅</div>
+        <div class="stat-info">
+          <div class="stat-value">${completedCount}</div>
+          <div class="stat-label">Completed Tasks</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon orange">📈</div>
+        <div class="stat-info">
+          <div class="stat-value">${progressPct}%</div>
+          <div class="stat-label">Completion Rate</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-header"><span class="card-title">📊 Overall Progress</span></div>
+      <div class="card-body">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px;">
+          <span style="font-weight:600;">${completedCount} of ${totalTasks} tasks completed</span>
+          <span style="color:var(--primary);font-weight:700;">${progressPct}%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${progressPct}%"></div></div>
+        <div style="margin-top:12px;font-size:13px;color:var(--text-muted)">
+          ${progressPct >= 80 ? '🌟 Outstanding progress! You\'re almost there.' : progressPct >= 50 ? '💪 Great work! Keep pushing forward.' : progressPct > 0 ? '🚀 Good start! Keep adding and completing tasks.' : '📝 Add tasks and start completing them to see your progress.'}
+        </div>
+      </div>
+    </div>
+
+    <!-- Account Details -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">👤 Account Details</span></div>
+      <div class="card-body">
+        <table>
+          <tbody>
+            <tr><td style="font-weight:600;color:var(--text-muted);font-size:13px;width:160px;">Full Name</td><td>${profile.name}</td></tr>
+            <tr><td style="font-weight:600;color:var(--text-muted);font-size:13px;">Email Address</td><td>${profile.email}</td></tr>
+            <tr><td style="font-weight:600;color:var(--text-muted);font-size:13px;">Member Since</td><td>${memberSince}</td></tr>
+            <tr><td style="font-weight:600;color:var(--text-muted);font-size:13px;">Total Tasks</td><td>${totalTasks}</td></tr>
+            <tr><td style="font-weight:600;color:var(--text-muted);font-size:13px;">Completed</td><td>${completedCount}</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:20px;">
+          <button class="btn btn-danger" onclick="handleLogout()">Sign Out of StudyMate</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
